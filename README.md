@@ -2,6 +2,9 @@
 
 Meeting transcript → task dependency graph. Extracts tasks with an LLM, validates dependencies, detects cycles, persists everything.
 
+**Live:** https://ai-dependency-engine-production.up.railway.app  
+**Swagger:** https://ai-dependency-engine-production.up.railway.app/api
+
 ## Levels
 
 | Level | Features |
@@ -45,15 +48,31 @@ Server: `http://localhost:3000`
 
 **Transcript input**
 
-- File: `multipart/form-data`, field `transcript` (.txt)
+- File: `multipart/form-data`, field `transcript` (.txt) — best for long transcripts
 - Raw: `Content-Type: text/plain`
 - JSON: `{ "transcript": "..." }` or `{ "transcriptBase64": "..." }`
 
-**Example**
+**File upload flow (recommended)**
+
+1. Client sends POST with `Content-Type: multipart/form-data`
+2. Form field name must be `transcript`, value = .txt file
+3. Server reads file into memory (max 10MB), decodes as UTF-8
+4. Transcript → parser (mock or LLM) → tasks
+5. Graph logic: sanitize deps, detect cycles
+6. Save transcript + tasks to DB
+7. Response: `{ transcriptId, tasks[] }` (201)
+
+**Examples**
 
 ```bash
+# Local
 curl -X POST http://localhost:3000/transcript/process -H "Content-Type: application/json" -d '{"transcript": "Fix the bug. Deploy by Monday."}'
+
+# Live (file upload)
+curl -X POST https://ai-dependency-engine-production.up.railway.app/transcript/process -F "transcript=@meeting.txt"
 ```
+
+**Postman / API client:** Body → form-data → key `transcript`, type File → select .txt
 
 ## Config (.env)
 
